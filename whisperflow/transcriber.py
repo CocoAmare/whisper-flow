@@ -1,4 +1,4 @@
-""" transcriber """
+"""transcriber"""
 
 import os
 import asyncio
@@ -9,14 +9,19 @@ import numpy as np
 import whisper
 from whisper import Whisper
 
-
 models = {}
 
 
 def get_model(file_name="tiny.en.pt") -> Whisper:
     """load models from disk"""
     if file_name not in models:
-        path = os.path.join(os.path.dirname(__file__), f"./models/{file_name}")
+        base_name = os.path.basename(file_name)
+        if base_name != file_name or ".." in file_name:
+            raise ValueError(f"Invalid model name: {file_name}")
+        models_dir = os.path.join(os.path.dirname(__file__), "models")
+        path = os.path.join(models_dir, base_name)
+        if not os.path.normpath(path).startswith(os.path.normpath(models_dir)):
+            raise ValueError(f"Invalid model name: {file_name}")
         models[file_name] = whisper.load_model(path).to(
             "cuda" if torch.cuda.is_available() else "cpu"
         )

@@ -1,4 +1,4 @@
-""" fast api declaration """
+"""fast api declaration"""
 
 import logging
 from typing import List
@@ -8,7 +8,6 @@ from starlette.websockets import WebSocketDisconnect
 from whisperflow import __version__
 import whisperflow.streaming as st
 import whisperflow.transcriber as ts
-
 
 app = FastAPI()
 sessions = {}
@@ -52,10 +51,12 @@ async def websocket_endpoint(websocket: WebSocket):
             session.add_chunk(data)
     except WebSocketDisconnect:
         if session:
+            sessions.pop(session.id, None)
             await session.stop()
     except Exception as exception:  # pragma: no cover
         logging.error(exception)
         if session:
+            sessions.pop(session.id, None)
             await session.stop()
         if websocket.client_state.name != "DISCONNECTED":
             await websocket.close()
