@@ -39,7 +39,10 @@ async def websocket_endpoint(websocket: WebSocket):
         return await ts.transcribe_pcm_chunks_async(model, chunks)
 
     async def send_back_async(data: dict):
-        await websocket.send_json(data)
+        try:
+            await websocket.send_json(data)
+        except Exception:  # pylint: disable=broad-except
+            pass  # client disconnected mid-send
 
     try:
         await websocket.accept()

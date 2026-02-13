@@ -1,4 +1,4 @@
-""" test transcriber """
+"""test transcriber"""
 
 import pytest
 from jiwer import wer
@@ -42,6 +42,23 @@ def test_transcribe_chunk():
     expected = resource["expected"]["final_ground_truth"]
     error = wer(response.json()["text"].lower(), expected.lower())
     assert error < 0.1
+
+
+def test_get_model_path_traversal():
+    """test that path traversal attempts are rejected"""
+    with pytest.raises(ValueError, match="Invalid model name"):
+        tr.get_model("../../etc/passwd")
+    with pytest.raises(ValueError, match="Invalid model name"):
+        tr.get_model("subdir/model.pt")
+
+
+def test_transcribe_empty_chunks():
+    """test that empty chunks return empty text"""
+    model = tr.get_model()
+    result = tr.transcribe_pcm_chunks(model, [])
+    assert result == {"text": ""}
+    result = tr.transcribe_pcm_chunks(model, [b""])
+    assert result == {"text": ""}
 
 
 @pytest.mark.asyncio
