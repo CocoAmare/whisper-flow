@@ -1,11 +1,10 @@
-""" 
-Implements conversation loop: capture 
-audio -> speech to text -> custom action -> text to speech -> play audio 
+"""
+Implements conversation loop: capture
+audio -> speech to text -> custom action -> text to speech -> play audio
 """
 
 import queue
 import asyncio
-import pytest
 import whisperflow.audio.microphone as mic
 
 
@@ -38,10 +37,8 @@ class ChatRoom:
     def stop_chat(self):
         """stop chat and release resources"""
         self.stop_chat_event.set()
-        assert self.stop_chat_event.is_set()
 
 
-@pytest.mark.skip(reason="requires audio hardware")
 def main():  # pragma: no cover
     """main function that runs the chat room"""
 
@@ -60,7 +57,7 @@ def main():  # pragma: no cover
 
     try:
         # Run the async main function
-        chat_room.start_chat()
+        asyncio.run(chat_room.start_chat())
     except KeyboardInterrupt:
         chat_room.stop_chat()
         print("Chat stopped")
