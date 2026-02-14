@@ -22,13 +22,14 @@ async def capture_audio(
         frames_per_buffer=chunk,
     )
 
-    while not stop_event.is_set():
-        data = stream.read(chunk)
-        queue_chunks.put_nowait(data)
-        await asyncio.sleep(0.001)
-
-    stream.close()
-    audio.terminate()
+    try:
+        while not stop_event.is_set():
+            data = stream.read(chunk)
+            queue_chunks.put_nowait(data)
+            await asyncio.sleep(0.001)
+    finally:
+        stream.close()
+        audio.terminate()
 
 
 async def play_audio(
@@ -45,16 +46,19 @@ async def play_audio(
         frames_per_buffer=chunk,
     )
 
-    while not stop_event.is_set():
-        if not queue_chunks.empty():
-            data = queue_chunks.get()
-            stream.write(data)
-        await asyncio.sleep(0.001)
-
-    stream.close()
-    audio.terminate()
+    try:
+        while not stop_event.is_set():
+            if not queue_chunks.empty():
+                data = queue_chunks.get()
+                stream.write(data)
+            await asyncio.sleep(0.001)
+    finally:
+        stream.close()
+        audio.terminate()
 
 
 def is_silent(data, silence_threshold=500):  # pragma: no cover
     """is chunk is silence"""
+    if not data:
+        return True
     return np.max(np.frombuffer(data, dtype=np.int16)) < silence_threshold
