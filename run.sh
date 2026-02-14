@@ -14,7 +14,7 @@ if [ "$#" -eq 0 ]; then
     4. '-benchmark' to run benchmark tests
     5. '-run-server' to run fastapi server
     6. '-setup' to run package setup"
-elif [ $1 = "-local" ]; then
+elif [ "$1" = "-local" ]; then
     trap 'abort' 0
     set -e
     echo "Running format, linter and tests"
@@ -27,7 +27,7 @@ elif [ $1 = "-local" ]; then
     black whisperflow tests
     pylint --fail-under=9.9 whisperflow tests
     pytest --ignore=tests/benchmark --cov-fail-under=95 --cov whisperflow -v tests
-elif [ $1 = "-test" ]; then
+elif [ "$1" = "-test" ]; then
     trap 'abort' 0
     set -e
     
@@ -36,7 +36,7 @@ elif [ $1 = "-test" ]; then
     black whisperflow tests
     pylint --fail-under=9.9 whisperflow tests
     pytest --ignore=tests/benchmark --cov-fail-under=95 --cov --log-cli-level=INFO whisperflow -v tests
-elif [ $1 = "-docker" ]; then
+elif [ "$1" = "-docker" ]; then
     echo "Building and running docker image"
     docker stop whisperflow-container
     docker rm whisperflow-container
@@ -44,7 +44,7 @@ elif [ $1 = "-docker" ]; then
     # build docker and run
     docker build --tag whisperflow-image --build-arg CACHEBUST=$(date +%s) . --file Dockerfile.test
     docker run --name whisperflow-container -p 8888:8888 -d whisperflow-image
-elif [ $1 = "-benchmark" ]; then
+elif [ "$1" = "-benchmark" ]; then
     echo "Running WhisperFlow Server"
     kill $(lsof -t -i:8181) 
     nohup uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181 &
@@ -52,11 +52,11 @@ elif [ $1 = "-benchmark" ]; then
     echo "Running WhisperFlow benchmark tests"
     pytest -v -s tests/benchmark
     kill $(lsof -t -i:8181)
-elif [ $1 = "-run-server" ]; then
+elif [ "$1" = "-run-server" ]; then
     echo "Running WhisperFlow server"
     kill $(lsof -t -i:8181) 
     uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181
-elif [ $1 = "-test-package" ]; then
+elif [ "$1" = "-test-package" ]; then
     echo "Running WhisperFlow package setup"
     # pip install twine
     # pip install wheel
