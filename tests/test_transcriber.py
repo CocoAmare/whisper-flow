@@ -61,6 +61,17 @@ def test_transcribe_empty_chunks():
     assert result == {"text": ""}
 
 
+def test_transcribe_odd_length_bytes():
+    """test that odd-length audio data is handled gracefully"""
+    model = tr.get_model()
+    # 3 bytes is odd, should be truncated to 2 bytes
+    result = tr.transcribe_pcm_chunks(model, [b"\x00\x00\x01"])
+    assert "text" in result
+    # single byte should be truncated to empty
+    result = tr.transcribe_pcm_chunks(model, [b"\x01"])
+    assert result == {"text": ""}
+
+
 @pytest.mark.asyncio
 async def test_transcribe_chunk_async():
     """test transcribe async"""

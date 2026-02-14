@@ -46,15 +46,15 @@ elif [ "$1" = "-docker" ]; then
     docker run --name whisperflow-container -p 8888:8888 -d whisperflow-image
 elif [ "$1" = "-benchmark" ]; then
     echo "Running WhisperFlow Server"
-    kill $(lsof -t -i:8181) 
+    kill $(lsof -t -i:8181) 2>/dev/null || true
     nohup uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181 &
     sleep 2s
     echo "Running WhisperFlow benchmark tests"
     pytest -v -s tests/benchmark
-    kill $(lsof -t -i:8181)
+    kill $(lsof -t -i:8181) 2>/dev/null || true
 elif [ "$1" = "-run-server" ]; then
     echo "Running WhisperFlow server"
-    kill $(lsof -t -i:8181) 
+    kill $(lsof -t -i:8181) 2>/dev/null || true
     uvicorn whisperflow.fast_server:app --host 0.0.0.0 --port 8181
 elif [ "$1" = "-test-package" ]; then
     echo "Running WhisperFlow package setup"

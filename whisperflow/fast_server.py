@@ -1,6 +1,7 @@
 """fast api declaration"""
 
 import os
+import hmac
 import logging
 from typing import List
 from fastapi import FastAPI, WebSocket, Form, File, UploadFile, Depends, Query
@@ -20,8 +21,8 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def _check_api_key(key: str) -> bool:
-    """validate an API key against the configured key"""
-    return _API_KEY is not None and key == _API_KEY
+    """validate an API key against the configured key (constant-time)"""
+    return _API_KEY is not None and hmac.compare_digest(key, _API_KEY)
 
 
 async def require_auth(
@@ -61,6 +62,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=No
     """websocket implementation"""
     if _API_KEY is not None:
         if token is None or not _check_api_key(token):
+            await websocket.accept()
             await websocket.close(code=WS_1008_POLICY_VIOLATION)
             return
 

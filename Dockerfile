@@ -13,3 +13,5 @@ WORKDIR /app
 # Install whisper-flow package
 RUN pip install whisperflow
 
+CMD ["uvicorn", "whisperflow.fast_server:app", "--host", "0.0.0.0", "--port", "8181"]
+

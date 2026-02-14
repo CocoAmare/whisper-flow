@@ -18,7 +18,10 @@ setup(
     install_requires=[
         str(r)
         for r in parse_requirements(
-            Path(__file__).with_name("requirements.txt").open()
+            open(  # pylint: disable=consider-using-with
+                Path(__file__).with_name("requirements.txt"),
+                encoding="utf-8",
+            )
         )
     ],
     description='WhisperFlow: Real-Time Transcription Powered by OpenAI Whisper',

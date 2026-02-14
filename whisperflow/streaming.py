@@ -15,6 +15,9 @@ def get_all(queue: Queue) -> list:
     return res
 
 
+_MAX_WINDOW_CHUNKS = 500  # ~1 MB at 2048 B/chunk, ~16 s at 16 kHz
+
+
 async def transcribe(
     should_stop: list,
     queue: Queue,
@@ -28,6 +31,10 @@ async def transcribe(
         start = time.time()
         await asyncio.sleep(0.01)
         window.extend(get_all(queue))
+
+        # Prevent unbounded window growth
+        if len(window) > _MAX_WINDOW_CHUNKS:
+            window = window[-_MAX_WINDOW_CHUNKS:]
 
         if not window:
             continue
@@ -74,7 +81,14 @@ class TranscribeSession:  # pylint: disable=too-few-public-methods
         """add new chunk"""
         self.queue.put_nowait(chunk)
 
-    async def stop(self):
-        """stop session"""
+    async def stop(self, timeout=10):
+        """stop session with timeout to prevent indefinite hangs"""
         self.should_stop[0] = True
-        await self.task
+        try:
+            await asyncio.wait_for(self.task, timeout=timeout)
+        except asyncio.TimeoutError:
+            self.task.cancel()
+            try:
+                await self.task
+            except asyncio.CancelledError:
+                pass

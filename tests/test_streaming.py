@@ -82,6 +82,50 @@ def test_streaming():
 
 
 @pytest.mark.asyncio
+async def test_window_cap():
+    """test that the transcription window is capped at _MAX_WINDOW_CHUNKS"""
+    queue, should_stop = Queue(), [False]
+    transcribe_calls = []
+
+    # Fill queue beyond the cap
+    for i in range(st._MAX_WINDOW_CHUNKS + 100):  # pylint: disable=protected-access
+        queue.put(i)
+
+    async def counting_transcriber(items: list) -> dict:
+        transcribe_calls.append(len(items))
+        should_stop[0] = True
+        return {"text": "x"}
+
+    async def dummy_segment_closed(_text: str) -> None:
+        pass
+
+    await st.transcribe(should_stop, queue, counting_transcriber, dummy_segment_closed)
+    max_cap = st._MAX_WINDOW_CHUNKS  # pylint: disable=protected-access
+    assert transcribe_calls[0] <= max_cap
+
+
+@pytest.mark.asyncio
+@pytest.mark.timeout(15)
+async def test_session_stop_timeout():
+    """test that session.stop() doesn't hang when task is slow"""
+    call_count = [0]
+
+    async def slow_transcriber(_items: list) -> dict:
+        call_count[0] += 1
+        await asyncio.sleep(100)  # simulate very slow transcription
+        return {"text": ""}
+
+    async def dummy_send(_data: dict) -> None:
+        pass
+
+    session = st.TranscribeSession(slow_transcriber, dummy_send)
+    session.add_chunk(b"\x00\x00")
+    await asyncio.sleep(0.1)  # let the loop start
+    await session.stop(timeout=1)
+    assert session.task.done()
+
+
+@pytest.mark.asyncio
 @pytest.mark.timeout(60)
 async def test_ws(chunk_size=4096):
     """test health api"""

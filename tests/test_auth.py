@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 import pytest
+from starlette.status import WS_1008_POLICY_VIOLATION
 import tests.utils as ut
 import whisperflow.fast_server as fs
 
@@ -65,20 +66,22 @@ def test_transcribe_accepted_with_valid_key():
 
 @patch.object(fs, "_API_KEY", TEST_API_KEY)
 def test_ws_rejected_without_token():
-    """websocket should be closed when no token is provided"""
+    """websocket should be accepted then closed with 1008 when no token"""
     client = ut.TestClient(fs.app)
-    with pytest.raises(Exception):
-        with client.websocket_connect("/ws"):
-            pass
+    with pytest.raises(Exception) as exc_info:
+        with client.websocket_connect("/ws") as websocket:
+            websocket.receive_text()  # triggers the close frame
+    assert str(WS_1008_POLICY_VIOLATION) in str(exc_info.value)
 
 
 @patch.object(fs, "_API_KEY", TEST_API_KEY)
 def test_ws_rejected_with_wrong_token():
-    """websocket should be closed when wrong token is provided"""
+    """websocket should be accepted then closed with 1008 for wrong token"""
     client = ut.TestClient(fs.app)
-    with pytest.raises(Exception):
-        with client.websocket_connect("/ws?token=wrong-key"):
-            pass
+    with pytest.raises(Exception) as exc_info:
+        with client.websocket_connect("/ws?token=wrong-key") as websocket:
+            websocket.receive_text()  # triggers the close frame
+    assert str(WS_1008_POLICY_VIOLATION) in str(exc_info.value)
 
 
 @patch.object(fs, "_API_KEY", TEST_API_KEY)
