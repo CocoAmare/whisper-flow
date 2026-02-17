@@ -35,7 +35,7 @@ elif [ "$1" = "-test" ]; then
     source .venv/bin/activate
     black whisperflow tests
     pylint --fail-under=9.9 whisperflow tests
-    pytest --ignore=tests/benchmark --cov-fail-under=95 --cov --log-cli-level=INFO whisperflow -v tests
+    pytest --ignore=tests/benchmark --cov-fail-under=95 --cov whisperflow --log-cli-level=INFO -v tests
 elif [ "$1" = "-docker" ]; then
     echo "Building and running docker image"
     docker stop whisperflow-container
@@ -64,7 +64,7 @@ elif [ "$1" = "-test-package" ]; then
     rm -rf .venv_test
     python3 -m venv .venv_test
     source .venv_test/bin/activate
-    pip install ./dist/whisperflow-0.1.0-py3-none-any.whl
+    pip install ./dist/whisperflow-1.0.0-py3-none-any.whl
     pytest --ignore=tests/benchmark --cov-fail-under=95 --cov whisperflow -v tests
     # twine upload ./dist/*
 else
