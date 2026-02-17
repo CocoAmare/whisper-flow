@@ -37,6 +37,14 @@ async def require_auth(
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
+@app.on_event("shutdown")
+async def shutdown():
+    """stop all active transcription sessions on server shutdown"""
+    for session in list(sessions.values()):
+        await session.stop()
+    sessions.clear()
+
+
 @app.get("/health", response_model=str)
 def health():
     """health function on API"""

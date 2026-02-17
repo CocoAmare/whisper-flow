@@ -2,7 +2,9 @@
 
 import os
 import asyncio
+import logging
 import threading
+import concurrent.futures
 
 import torch
 import numpy as np
@@ -12,6 +14,7 @@ from whisper import Whisper
 
 models = {}
 _models_lock = threading.Lock()
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 def get_model(file_name="tiny.en.pt") -> Whisper:
@@ -46,13 +49,20 @@ def transcribe_pcm_chunks(
     if not raw:
         return {"text": ""}
     arr = np.frombuffer(raw, np.int16).flatten().astype(np.float32) / 32768.0
-    return model.transcribe(
-        arr,
-        fp16=False,
-        language=lang,
-        logprob_threshold=log_prob,
-        temperature=temperature,
-    )
+    try:
+        return model.transcribe(
+            arr,
+            fp16=False,
+            language=lang,
+            logprob_threshold=log_prob,
+            temperature=temperature,
+        )
+    except RuntimeError as err:  # pragma: no cover
+        if "out of memory" in str(err).lower():
+            logging.error("CUDA out of memory, clearing cache")
+            torch.cuda.empty_cache()
+            return {"text": ""}
+        raise
 
 
 async def transcribe_pcm_chunks_async(
@@ -60,5 +70,5 @@ async def transcribe_pcm_chunks_async(
 ) -> dict:
     """transcribes pcm chunks async"""
     return await asyncio.get_running_loop().run_in_executor(
-        None, transcribe_pcm_chunks, model, chunks, lang, temperature, log_prob
+        _executor, transcribe_pcm_chunks, model, chunks, lang, temperature, log_prob
     )

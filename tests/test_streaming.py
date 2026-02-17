@@ -146,6 +146,74 @@ async def test_ws(chunk_size=4096):
     assert client
 
 
+@pytest.mark.asyncio
+@pytest.mark.timeout(15)
+async def test_add_chunk_queue_full():
+    """test that add_chunk handles a full queue without raising"""
+
+    async def slow_transcriber(_items: list) -> dict:
+        await asyncio.sleep(100)
+        return {"text": ""}
+
+    async def dummy_send(_data: dict) -> None:
+        pass
+
+    session = st.TranscribeSession(slow_transcriber, dummy_send)
+    # Fill well beyond queue capacity — should not raise
+    for _ in range(st._MAX_QUEUE_SIZE + 200):  # pylint: disable=protected-access
+        session.add_chunk(b"\x00\x00")
+    assert session.queue.full()
+    await session.stop(timeout=1)
+    assert session.task.done()
+
+
+@pytest.mark.asyncio
+@pytest.mark.timeout(5)
+async def test_transcribe_idle_without_event():
+    """test that transcribe loop sleeps when idle with no data_event"""
+    queue, should_stop = Queue(), [False]
+
+    async def dummy_transcriber(_items: list) -> dict:
+        return {"text": "data"}
+
+    results = []
+
+    async def dummy_segment_closed(data: dict) -> None:
+        results.append(data)
+        should_stop[0] = True
+
+    task = asyncio.create_task(
+        st.transcribe(should_stop, queue, dummy_transcriber, dummy_segment_closed)
+    )
+    # Let it idle past the 0.5s sleep, then feed data
+    await asyncio.sleep(0.6)
+    queue.put(b"\x00\x00")
+    await task
+    assert len(results) > 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.timeout(15)
+async def test_shutdown_cleans_sessions():
+    """test that the shutdown handler stops all active sessions"""
+
+    async def slow_transcriber(_items: list) -> dict:
+        await asyncio.sleep(100)
+        return {"text": ""}
+
+    async def dummy_send(_data: dict) -> None:
+        pass
+
+    session = st.TranscribeSession(slow_transcriber, dummy_send)
+    session.add_chunk(b"\x00\x00")
+    fs.sessions[session.id] = session
+
+    await fs.shutdown()
+
+    assert len(fs.sessions) == 0
+    assert session.task.done()
+
+
 def test_health():
     """test health endpoint"""
     client = ut.TestClient(fs.app)
