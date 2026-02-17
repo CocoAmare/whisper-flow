@@ -1,0 +1,65 @@
+services:
+  whisperflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${WHISPERFLOW_PORT:-8181}:8181"
+    environment:
+      - WHISPERFLOW_API_KEY=${WHISPERFLOW_API_KEY:-}
+      - WHISPERFLOW_CONFIG=/app/config/whisperflow.json
+    volumes:
+      - whisperflow-config:/app/config
+      - whisperflow-models:/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - whisperflow-net
+
+  # Uncomment to run OpenClaw alongside WhisperFlow
+  # openclaw-gateway:
+  #   image: ${OPENCLAW_IMAGE:-openclaw:local}
+  #   environment:
+  #     HOME: /home/node
+  #     TERM: xterm-256color
+  #     OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+  #     WHISPERFLOW_URL: http://whisperflow:8181
+  #     WHISPERFLOW_API_KEY: ${WHISPERFLOW_API_KEY:-}
+  #   volumes:
+  #     - ${OPENCLAW_CONFIG_DIR:-./openclaw-config}:/home/node/.openclaw
+  #     - ${OPENCLAW_WORKSPACE_DIR:-./openclaw-workspace}:/home/node/.openclaw/workspace
+  #     - ./skill:/home/node/.openclaw/workspace/skills/whisperflow
+  #   ports:
+  #     - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
+  #   init: true
+  #   restart: unless-stopped
+  #   command:
+  #     ["node", "dist/index.js", "gateway", "--bind", "${OPENCLAW_GATEWAY_BIND:-lan}", "--port", "18789"]
+  #   depends_on:
+  #     whisperflow:
+  #       condition: service_healthy
+  #   networks:
+  #     - whisperflow-net
+
+  # Uncomment to add Ollama as a transcription backend
+  # ollama:
+  #   image: ollama/ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-models:/root/.ollama
+  #   networks:
+  #     - whisperflow-net
+
+volumes:
+  whisperflow-config:
+  whisperflow-models:
+  # ollama-models:
+
+networks:
+  whisperflow-net:
+    driver: bridge

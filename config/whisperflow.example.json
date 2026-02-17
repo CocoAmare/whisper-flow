@@ -1,0 +1,20 @@
+{
+  "api_key": "",
+  "provider": "whisper",
+  "model": "tiny.en.pt",
+  "sensitivity": 500,
+  "mode": "always_on",
+  "providers": {
+    "whisper": {
+      "models_dir": "./models"
+    },
+    "ollama": {
+      "url": "http://ollama:11434",
+      "model": "whisper"
+    },
+    "lmstudio": {
+      "url": "http://localhost:1234",
+      "model": "whisper-1"
+    }
+  }
+}
